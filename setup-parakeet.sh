@@ -42,7 +42,7 @@ import sys
 import torch
 import nemo.collections.asr as nemo_asr
 
-MODEL_NAME = "nvidia/parakeet-ctc-0.6b-vi"
+MODEL_NAME = "nvidia/parakeet-ctc-0.6b-Vietnamese"
 
 if len(sys.argv) != 2:
     print("Usage: python transcribe.py /path/to/audio.wav")

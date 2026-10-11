@@ -1,6 +1,6 @@
 # install-unispeech
 
-Script cài đặt nhanh **NVIDIA Parakeet-CTC-0.6B-Vietnamese** (`nvidia/parakeet-ctc-0.6b-vi`) để nhận dạng tiếng nói tiếng Việt (ASR) cho UniAgent Speech.
+Script cài đặt nhanh **NVIDIA Parakeet-CTC-0.6B-Vietnamese** (`nvidia/parakeet-ctc-0.6b-Vietnamese`) để nhận dạng tiếng nói tiếng Việt (ASR) cho UniAgent Speech.
 
 ## Yêu cầu
 
@@ -52,4 +52,4 @@ ffmpeg -i input.mp3 -ac 1 -ar 16000 /workspace/call.wav
 ## Lưu ý
 
 - Script cài phiên bản `nemo_toolkit` mới nhất. Trước khi đưa vào production, hãy pin phiên bản cụ thể đã được kiểm thử.
-- Thông tin model: https://huggingface.co/nvidia/parakeet-ctc-0.6b-vi
+- Thông tin model: https://huggingface.co/nvidia/parakeet-ctc-0.6b-Vietnamese
