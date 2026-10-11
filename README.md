@@ -20,7 +20,7 @@ Script **không dùng Python hay torch của template**. Nó tạo venv riêng `
 | Image | Template **NVIDIA CUDA** của Vast.ai (chỉ cần driver NVIDIA ≥ 570, hỗ trợ CUDA 12.8). Template khác cũng chạy được vì script không dùng Python/torch có sẵn |
 | Launch mode | **Docker ENTRYPOINT** như template gốc, ô Args để trống. Không đổi sang SSH: mode SSH thay entrypoint của image, mất supervisor, Jupyter, Instance Portal |
 | On-start script | xem bên dưới |
-| Docker options | `-e UNIASR_GATEWAY_URL=https://asr.uniagent.vn -e UNIASR_WORKER_VERSION=5a31d45 -e UNIASR_BATCH_SIZE=8 -e UNIASR_MAX_JOBS=1` |
+| Docker options | `-e UNIASR_GATEWAY_URL=https://asr.uniagent.vn -e UNIASR_WORKER_VERSION=5d84c8f -e UNIASR_BATCH_SIZE=8 -e UNIASR_MAX_JOBS=1` |
 | Disk | 40 GB (template + NeMo + model 2,4 GB) |
 
 On-start script: chèn hai dòng **trước** `entrypoint.sh` của template. `entrypoint.sh` khởi động SSH, Jupyter, Instance Portal rồi chạy mãi, nên lệnh đặt sau nó không bao giờ chạy. Script cài đặt chạy nền nên không làm chậm `entrypoint.sh`.
@@ -51,7 +51,7 @@ Lần thuê đầu cài mất vài phút (torch + NeMo khoảng 5 GB, ~194 gói)
 |---|---|---|
 | `UNIASR_GATEWAY_URL` | (bắt buộc) | `https://asr.uniagent.vn` |
 | `UNIASR_NODE_KEY` | (bắt buộc) | key của máy, thêm lúc thuê |
-| `UNIASR_WORKER_VERSION` | nội dung `worker/latest` (hiện là `5a31d45`) | nên ghim trong template |
+| `UNIASR_WORKER_VERSION` | nội dung `worker/latest` (hiện là `5d84c8f`) | nên ghim trong template |
 | `HF_HOME` | `/workspace/.cache/huggingface` | cache model |
 
 ### Theo dõi

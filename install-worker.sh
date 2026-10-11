@@ -8,7 +8,7 @@
 # Variables (template Docker options / rent):
 #   UNIASR_GATEWAY_URL    https://asr.uniagent.vn                       (required)
 #   UNIASR_NODE_KEY       uan_live_...  per instance, add it when renting (required, never in the template)
-#   UNIASR_WORKER_VERSION bundle to install, e.g. 5a31d45                (default: worker/latest)
+#   UNIASR_WORKER_VERSION bundle to install, e.g. 5d84c8f                (default: worker/latest)
 # The template's own Python and torch are not used: the worker gets its own venv in /opt/uniasr/<version>/venv
 # with the Python minor and the exact package versions of the tested worker image (bundle constraints.txt:
 # torch CUDA build, NeMo, numpy, ...). Then the restart loop `uniasr-vast` starts (log /var/log/uniasr-worker.log).
