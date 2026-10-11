@@ -9,7 +9,7 @@ Script cài đặt nhanh **GPU worker** của UniAgent Speech trên máy GPU thu
 
 Worker phát hành dưới dạng **bundle bytecode** (không có mã nguồn), tạo bằng `scripts/build_worker_bundle.sh` của repo `unispeech_asr` / `unispeech_tts`. Script cài đặt không dùng Python hay torch của template: mỗi worker có venv riêng (`/opt/uniasr/<sha>`, `/opt/unispeech/<sha>`) với đúng phiên bản gói của image đã kiểm thử.
 
-> `install-worker.sh` ở thư mục gốc chỉ còn để tương thích với template ASR cũ (chuyển tiếp sang `asr/install-worker.sh`). Đổi on-start của template sang URL mới rồi xoá file này.
+> Template ASR cũ tải `main/install-worker.sh` (thư mục gốc) phải đổi on-start sang `main/asr/install-worker.sh`: file ở thư mục gốc đã bị xoá.
 
 ## ASR: GPU worker trên Vast.ai (`asr/install-worker.sh`)
 
