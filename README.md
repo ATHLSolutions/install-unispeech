@@ -4,7 +4,7 @@ Script cài đặt nhanh **GPU worker** của UniAgent Speech trên máy GPU thu
 
 | Thư mục | Dịch vụ | Script | Bundle |
 |---|---|---|---|
-| [`asr/`](asr/) | **ASR**: nhận dạng giọng nói, kéo job từ `asr.uniagent.vn` (NVIDIA Parakeet-CTC-0.6B-Vietnamese) | [`asr/install-worker.sh`](asr/install-worker.sh), [`asr/setup-parakeet.sh`](asr/setup-parakeet.sh) (thử model) | `asr/worker/<sha>/`, `asr/worker/latest` |
+| [`asr/`](asr/) | **ASR**: nhận dạng giọng nói, kéo job từ `asr.uniagent.vn` (NVIDIA Parakeet-CTC-0.6B-Vietnamese) | [`asr/install-worker.sh`](asr/install-worker.sh) | `asr/worker/<sha>/`, `asr/worker/latest` |
 | [`tts/`](tts/) | **TTS**: speech node, gateway `speech.uniagent.vn` gọi vào (UniSpeech v3 Turbo) | [`tts/install-worker.sh`](tts/install-worker.sh) | `tts/worker/<sha>/`, `tts/worker/latest` |
 
 Worker phát hành dưới dạng **bundle bytecode** (không có mã nguồn), tạo bằng `scripts/build_worker_bundle.sh` của repo `unispeech_asr` / `unispeech_tts`. Script cài đặt không dùng Python hay torch của template: mỗi worker có venv riêng (`/opt/uniasr/<sha>`, `/opt/unispeech/<sha>`) với đúng phiên bản gói của image đã kiểm thử.
@@ -111,57 +111,3 @@ tail -f /var/log/unispeech-worker.log    # node: chờ "logged in to https://spe
 ```
 
 Node thoát mã `2` (thiếu key, thiếu `-p 8000:8000`) thì `unispeech-vast` không khởi động lại, chỉ ghi lý do vào log. Đổi key qua SSH: `UNISPEECH_NODE_KEY=usn_live_... bash /root/unispeech-install.sh`.
-
-## ASR: thử model trên một file (`asr/setup-parakeet.sh`)
-
-### Yêu cầu
-
-- Máy Linux có GPU NVIDIA và driver đã cài (`nvidia-smi` chạy được)
-- Python venv tại `/venv/main` có sẵn PyTorch hỗ trợ CUDA (mặc định trên template PyTorch của [Vast.ai](https://vast.ai))
-- `uv` đã cài sẵn
-- Kết nối Internet để tải package và model từ Hugging Face
-
-> Nếu môi trường của bạn không phải Vast.ai, sửa đường dẫn `/venv/main` trong `asr/setup-parakeet.sh` cho phù hợp.
-
-### Cài đặt
-
-```bash
-git clone https://github.com/ATHLSolutions/install-unispeech.git
-cd install-unispeech
-chmod +x asr/setup-parakeet.sh
-./asr/setup-parakeet.sh
-```
-
-Script sẽ:
-
-1. Kiểm tra GPU bằng `nvidia-smi`
-2. Kích hoạt venv `/venv/main`
-3. Kiểm tra phiên bản Python, PyTorch và CUDA (dừng lại nếu PyTorch không thấy GPU)
-4. Cài `nemo_toolkit[asr]` bằng `uv pip`
-5. Tạo thư mục làm việc `/workspace/uniagent-speech`
-6. Tạo script thử nghiệm `transcribe.py`
-
-### Sử dụng
-
-```bash
-source /venv/main/bin/activate
-python /workspace/uniagent-speech/transcribe.py /workspace/call.wav
-```
-
-Lần chạy đầu tiên model sẽ được tải từ Hugging Face và lưu cache. Kết quả in ra gồm:
-
-- `TRANSCRIPT`: văn bản nhận dạng
-- `WORD TIMESTAMPS`: mốc thời gian theo từng từ
-
-#### Định dạng audio
-
-Model hoạt động tốt nhất với file WAV mono, 16 kHz. Có thể chuyển đổi bằng `ffmpeg`:
-
-```bash
-ffmpeg -i input.mp3 -ac 1 -ar 16000 /workspace/call.wav
-```
-
-### Lưu ý
-
-- Script cài phiên bản `nemo_toolkit` mới nhất. Trước khi đưa vào production, hãy pin phiên bản cụ thể đã được kiểm thử.
-- Thông tin model: https://huggingface.co/nvidia/parakeet-ctc-0.6b-Vietnamese
