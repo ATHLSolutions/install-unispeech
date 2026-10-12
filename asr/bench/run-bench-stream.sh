@@ -30,4 +30,4 @@ curl -fsSL "$SAMPLE" -o "$tmp/sample.wav"
 nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv,noheader
 cd "$APP"
 # NeMo is verbose: drop its INFO/WARNING lines, keep everything else (errors, tracebacks, results).
-PYTHONPATH="$APP" "$PY" "$tmp/bench_stream.pyc" "$tmp/sample.wav" "$@" 2>&1 | sed -E '/^\[NeMo [IW] /d'
+PYTHONPATH="$APP" "$PY" "$tmp/bench_stream.pyc" "$tmp/sample.wav" --show-diff 5 "$@" 2>&1 | sed -E '/^\[NeMo [IW] /d'
