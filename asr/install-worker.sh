@@ -9,14 +9,25 @@
 #   UNIASR_GATEWAY_URL    https://asr.uniagent.vn                       (required)
 #   UNIASR_NODE_KEY       uan_live_...  per instance, add it when renting (required, never in the template)
 #   UNIASR_WORKER_VERSION bundle to install, e.g. 5d84c8f                (default: asr/worker/latest)
+#   UNIASR_TORCH_INDEX    PyTorch wheel index      (default: cu128 on x86_64, cu129 on aarch64)
+#   UNIASR_TORCH          torch requirement on aarch64, e.g. torch==2.9.1+cu130 with the cu130 index
+#                         (default: the image's torch version, built for UNIASR_TORCH_INDEX)
 # The template's own Python and torch are not used: the worker gets its own venv in /opt/uniasr/<version>/venv
 # with the Python minor and the exact package versions of the tested worker image (bundle constraints.txt:
 # torch CUDA build, NeMo, numpy, ...). Then the restart loop `uniasr-vast` starts (log /var/log/uniasr-worker.log).
+# aarch64 (GH200, GB200, DGX Spark GB10): the image is x86_64 and PyTorch ships no aarch64 cu128 build of its
+# torch, so torch comes from the cu129 index and the CUDA-build pins (torch*, triton, nvidia-*) are dropped;
+# every other package keeps the image's version.
 # Already installed (instance restart): only starts the worker again.
 set -Eeuo pipefail
 
 BASE=${UNIASR_INSTALL_BASE:-https://raw.githubusercontent.com/ATHLSolutions/install-unispeech/main/asr}
-TORCH_INDEX=${UNIASR_TORCH_INDEX:-https://download.pytorch.org/whl/cu128}
+ARCH=$(uname -m)
+if [ "$ARCH" = aarch64 ]; then
+  TORCH_INDEX=${UNIASR_TORCH_INDEX:-https://download.pytorch.org/whl/cu129}
+else
+  TORCH_INDEX=${UNIASR_TORCH_INDEX:-https://download.pytorch.org/whl/cu128}
+fi
 LOG=/var/log/uniasr-worker.log
 log() { echo "[uniasr-install $(date '+%F %T')] $*"; }
 fail() { log "ERROR: $*"; exit 1; }
@@ -62,14 +73,24 @@ else
   rm -rf "$tmp"
 
   # Own venv, same Python minor and package versions as the worker image (uv fetches that Python if needed).
-  log "venv: Python $PYV, $(head -1 "$APP/requirements.txt"), $(wc -l < "$APP/constraints.txt") pinned packages"
+  req=$APP/requirements.txt cons=$APP/constraints.txt
+  if [ "$ARCH" = aarch64 ]; then
+    torch_ver=$(sed -n 's/^torch==\([^+]*\).*/\1/p' "$req")
+    torch_req=${UNIASR_TORCH:-torch==$torch_ver+${TORCH_INDEX##*/}}
+    sed "s/^torch==.*/$torch_req/" "$req" > "$APP/requirements.$ARCH.txt"
+    grep -vE '^(torch|torchaudio|torchvision|triton|nvidia-[a-z0-9-]+)==' "$cons" > "$APP/constraints.$ARCH.txt"
+    req=$APP/requirements.$ARCH.txt cons=$APP/constraints.$ARCH.txt
+  fi
+  log "venv: Python $PYV, $ARCH, $(head -1 "$req") from $TORCH_INDEX, $(wc -l < "$cons") pinned packages"
   uv venv -q --python "$PYV" "$APP/venv"
-  UV_HTTP_TIMEOUT=300 uv pip install --python "$PY" -r "$APP/requirements.txt" -c "$APP/constraints.txt" \
+  UV_HTTP_TIMEOUT=300 uv pip install --python "$PY" -r "$req" -c "$cons" \
     --extra-index-url "$TORCH_INDEX" --index-strategy unsafe-best-match
   (cd "$APP" && "$PY" - <<'PY'
 import torch
 assert torch.cuda.is_available(), "torch cannot see the GPU (driver too old for this CUDA build?)"
-print("torch", torch.__version__, "GPU", torch.cuda.get_device_name(0))
+print("torch", torch.__version__, "GPU", torch.cuda.get_device_name(0), "sm_%d%d" % torch.cuda.get_device_capability(0))
+x = torch.randn(256, 256, device="cuda")   # real kernels: fails with "no kernel image" if this torch lacks the GPU arch
+print("cuda matmul OK", round(float((x @ x).relu().sum()), 1) > 0)
 import nemo.collections.asr, apps.asr_worker.engines.parakeet  # noqa: F401  (the imports the worker needs)
 print("nemo.collections.asr OK")
 PY
