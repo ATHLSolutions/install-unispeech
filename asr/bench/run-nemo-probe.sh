@@ -33,7 +33,12 @@ curl -fsSL "$BASE/bench/nemo_probe.py$PYV.pyc" -o "$tmp/nemo_probe.pyc" \
 # Audio: the files among the arguments, else the public sample (and then texts may be shown).
 args=() files=0
 for a in "$@"; do
-  [ -f "$a" ] && files=$((files + 1))
+  if [ -f "$a" ]; then
+    files=$((files + 1))
+  elif [[ "$a" =~ \.(wav|mp3|m4a|ogg|opus|flac|aac|webm|mp4)$ ]]; then
+    echo "no such audio file: $a" >&2
+    exit 1
+  fi
   args+=("$a")
 done
 if [ "$files" -eq 0 ]; then
