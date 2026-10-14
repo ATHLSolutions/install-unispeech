@@ -6,7 +6,8 @@
 # times and needs the whole GPU memory; on a production worker it would compete with recognition.
 #
 #   curl -fsSL https://raw.githubusercontent.com/ATHLSolutions/install-unispeech/main/asr/bench/run-nemo-probe.sh | bash
-#   ... | bash -s -- --only bias --phrases "booking,Đà Lạt" --show-text /root/call.wav
+#   ... | bash -s -- --only bias --phrases "booking,Đà Lạt" --show-text /root/call.wav   (or an https:// URL)
+#   ... | bash -s -- --only bias --show-text --phrases "booking status,payment" "$BASE/bench/Recording.m4a"
 #   ... | bash -s -- --only train --modes bf16 adapter --train-batch 4
 #
 # Without audio files the public sample tuanta.wav is used and texts are printed. The report is written to
@@ -33,7 +34,12 @@ curl -fsSL "$BASE/bench/nemo_probe.py$PYV.pyc" -o "$tmp/nemo_probe.pyc" \
 # Audio: the files among the arguments, else the public sample (and then texts may be shown).
 args=() files=0
 for a in "$@"; do
-  if [ -f "$a" ]; then
+  if [[ "$a" =~ ^https?:// ]]; then   # audio URL: download it
+    f="$tmp/url$files-$(basename "${a%%\?*}")"
+    curl -fsSL "$a" -o "$f" || { echo "cannot download $a" >&2; exit 1; }
+    a=$f
+    files=$((files + 1))
+  elif [ -f "$a" ]; then
     files=$((files + 1))
   elif [[ "$a" =~ \.(wav|mp3|m4a|ogg|opus|flac|aac|webm|mp4)$ ]]; then
     echo "no such audio file: $a" >&2
