@@ -7,7 +7,8 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/ATHLSolutions/install-unispeech/main/asr/bench/run-nemo-probe.sh | bash
 #   ... | bash -s -- --only bias --phrases "booking,Đà Lạt" --show-text /root/call.wav   (or an https:// URL)
-#   ... | bash -s -- --only bias --show-text --phrases "booking status,payment" "$BASE/bench/Recording.m4a"
+#   ... | bash -s -- --only bias --show-text --phrases "payment=pây mần|pian,Zalo=da lô" /root/call.m4a
+#       (canonical=spoken forms|forms the model writes: the spotter follows all of them, writes the canonical)
 #   ... | bash -s -- --only train --modes bf16 adapter --train-batch 4
 #
 # Without audio files the public sample tuanta.wav is used and texts are printed. The report is written to
