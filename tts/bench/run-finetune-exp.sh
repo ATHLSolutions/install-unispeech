@@ -13,6 +13,7 @@
 #   SYNTH_VOICE        built-in voice of the synthetic dataset (default "Mai Anh"); SYNTH_N: first N sentences (0 = all ~100)
 #   DATASET_URL        zip with metadata.csv + raw_audio/ of ONE speaker (real voice); needs CONSENT=yes
 #   NO_ONNX=1          skip the CPU (ONNX) part
+#   REUSE=1            keep the dataset and the configs already trained in $EXP_DIR (only evaluate again)
 #   EXP_DIR            working folder (default /workspace/tts-ft-exp, else /root/tts-ft-exp)
 #   UNISPEECH_FT_VERSION  bundle to use (default tts/finetune/latest)
 #   ALLOW_WITH_NODE=1  run even though a speech node is serving on this GPU (it slows its live streams)
@@ -99,10 +100,11 @@ PY
   rm -f "$W/dataset.zip"
   args+=(--dataset-dir "$W/dataset")
 else
-  rm -rf "$W/dataset"
+  # experiment.py makes the synthetic dataset again unless REUSE=1 keeps the previous one
   args+=(--synthetic-voice "${SYNTH_VOICE:-Mai Anh}" --synthetic-n "${SYNTH_N:-0}")
 fi
 [ "${NO_ONNX:-0}" = 1 ] && args+=(--no-onnx)
+[ "${REUSE:-0}" = 1 ] && args+=(--reuse)
 
 log "experiment $VER: ${args[*]}"
 cd "$W"
