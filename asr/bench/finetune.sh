@@ -8,18 +8,24 @@
 #
 # Settings measured on the GPU (trienkhai.md 5.4): bf16-mixed (fp16 gives NaN from the first step), batch 8 x 15 s
 # = 12.25 GB. The tokenizer is kept (it writes every Latin letter; labels are checked by check_tokens.py first).
-# The best checkpoints by val_wer are saved as .nemo under <data>/exp; compare them with the base model on the
+# The best checkpoint by val_wer (KEEP=1; weights only) is saved as .nemo under <data>/exp; compare it with the base model on the
 # eval split with train/eval_local.py before any release.
 set -euo pipefail
 DATA=${1:?usage: train/finetune.sh <dir with train_manifest.jsonl and val_manifest.jsonl>}
 DATA=$(cd "$DATA" && pwd)
 HERE=$(cd "$(dirname "$0")" && pwd)
 PY=${PYTHON:-/opt/uniasr/current/venv/bin/python}
-EPOCHS=${EPOCHS:-20} LR=${LR:-3e-5} BATCH=${BATCH:-8} ACCUM=${ACCUM:-8}
+EPOCHS=${EPOCHS:-20} LR=${LR:-3e-5} BATCH=${BATCH:-8} ACCUM=${ACCUM:-8} KEEP=${KEEP:-1}
 NEMO_TAG=v2.4.0
 for f in train_manifest.jsonl val_manifest.jsonl; do
   [ -s "$DATA/$f" ] || { echo "$DATA/$f is missing or empty" >&2; exit 1; }
 done
+# Checkpoints: the best KEEP by val_wer, weights only (a Lightning checkpoint with the AdamW state is ~7 GB):
+# ~2.4 GB each plus its .nemo (~2.4 GB). A full disk shows up as torch.save "unexpected pos ...".
+need_gb=$(( KEEP * 5 + 5 ))
+free_gb=$(df -Pk "$DATA" | awk 'NR==2 {print int($4 / 1048576)}')
+echo "disk: ${free_gb} GB free under $DATA, need about ${need_gb} GB"
+[ "$free_gb" -ge "$need_gb" ] || { echo "not enough disk for the checkpoints (KEEP=$KEEP)" >&2; exit 1; }
 "$PY" -c 'import torch, sys; ok = torch.cuda.is_available() and torch.cuda.is_bf16_supported(); print("GPU:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "none", "bf16:", ok); sys.exit(0 if ok else 1)' \
   || { echo "needs a CUDA GPU with bf16" >&2; exit 1; }
 
@@ -56,7 +62,9 @@ NAME=ft-$(date +%Y%m%d-%H%M)
   trainer.devices=1 trainer.precision=bf16-mixed \
   trainer.max_epochs="$EPOCHS" trainer.accumulate_grad_batches="$ACCUM" trainer.gradient_clip_val=1.0 \
   exp_manager.exp_dir="$DATA/exp" \
-  exp_manager.checkpoint_callback_params.save_top_k=3
+  exp_manager.checkpoint_callback_params.save_top_k="$KEEP" \
+  exp_manager.checkpoint_callback_params.save_last=false \
+  exp_manager.checkpoint_callback_params.save_weights_only=true
 
 echo
 echo "checkpoints (.nemo, best by val_wer):"
