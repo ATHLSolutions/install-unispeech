@@ -111,3 +111,29 @@ tail -f /var/log/unispeech-worker.log    # node: chờ "logged in to https://spe
 ```
 
 Node thoát mã `2` (thiếu key, thiếu `-p 8000:8000`) thì `unispeech-vast` không khởi động lại, chỉ ghi lý do vào log. Đổi key qua SSH: `UNISPEECH_NODE_KEY=usn_live_... bash /root/unispeech-install.sh`.
+
+## TTS: thử nghiệm fine-tune LoRA (`tts/bench/run-finetune-exp.sh`)
+
+Train vài giọng LoRA với các cấu hình khác nhau trên máy GPU thuê, so với clone tức thì, rồi kiểm tra adapter trên đường CPU (ONNX gốc đã vá). Phân tích và lý do: `unispeech_tts/docs/huanluyen/phantich.md` §6, giai đoạn 0.
+
+Mặc định dùng **dữ liệu tổng hợp**: model gốc đọc ~100 câu công khai bằng một giọng có sẵn, nên không có giọng người thật nào lên máy thuê. Giọng thật (`DATASET_URL`, zip gồm `metadata.csv` + `raw_audio/`) phải có đồng ý của người nói (`CONSENT=yes`) và nên chạy trên GPU của mình.
+
+Chạy trên máy đã có NVIDIA driver ≥ 570 (template NVIDIA CUDA, có thể là máy speech node đã *drain*). Script tạo venv riêng `/opt/unispeech-ft/<sha>/venv` (`uv sync --frozen --extra cuda --extra finetune` từ bundle `tts/finetune/<sha>/`), dùng chung cache model với speech node:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ATHLSolutions/install-unispeech/main/tts/bench/run-finetune-exp.sh -o /root/tts-ft-exp.sh
+nohup bash /root/tts-ft-exp.sh > /var/log/tts-ft-exp.log 2>&1 &
+tail -f /var/log/tts-ft-exp.log
+# CONFIGS=e3_r16,e10_r16,e10_r16_all nohup bash /root/tts-ft-exp.sh ...   (biến: xem đầu script)
+```
+
+| Biến | Mặc định | Ý nghĩa |
+|---|---|---|
+| `CONFIGS` | `e3_r16,e10_r16,e20_r32` | `e<epochs>_r<rank>[_all]`, `_all` = thêm LoRA cho acoustic decoder (không chạy được trên ONNX) |
+| `SYNTH_VOICE`, `SYNTH_N` | `Mai Anh`, `0` (tất cả) | giọng và số câu của dataset tổng hợp |
+| `DATASET_URL` + `CONSENT=yes` | (trống) | giọng thật; dataset và model train từ nó bị xoá khi xong |
+| `NO_ONNX` | `0` | `1` = bỏ phần CPU/ONNX |
+| `EXP_DIR` | `/workspace/tts-ft-exp` | thư mục làm việc |
+| `ALLOW_WITH_NODE` | `0` | script từ chối chạy khi speech node đang phục vụ trên máy (train làm chậm luồng thật) |
+
+Kết quả: `report.md` (in ra cuối log), `results.json`, `wavs/` (nghe so sánh), và `results.tar.gz` để tải về. Mất khoảng 20–40 phút với 3 cấu hình, cần ~12 GB đĩa trống. Bundle tạo bằng `scripts/build_finetune_bundle.sh` của `unispeech_tts`.

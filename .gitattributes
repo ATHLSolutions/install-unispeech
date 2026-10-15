@@ -3,3 +3,4 @@
 SHA256SUMS text eol=lf
 asr/worker/latest text eol=lf
 tts/worker/latest text eol=lf
+tts/finetune/latest text eol=lf
