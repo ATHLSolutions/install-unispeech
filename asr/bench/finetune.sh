@@ -63,8 +63,8 @@ NAME=ft-$(date +%Y%m%d-%H%M)
   trainer.max_epochs="$EPOCHS" trainer.accumulate_grad_batches="$ACCUM" trainer.gradient_clip_val=1.0 \
   exp_manager.exp_dir="$DATA/exp" \
   exp_manager.checkpoint_callback_params.save_top_k="$KEEP" \
-  exp_manager.checkpoint_callback_params.save_last=false \
-  exp_manager.checkpoint_callback_params.save_weights_only=true
+  +exp_manager.checkpoint_callback_params.save_last=false \
+  +exp_manager.checkpoint_callback_params.save_weights_only=true
 
 echo
 echo "checkpoints (.nemo, best by val_wer):"
