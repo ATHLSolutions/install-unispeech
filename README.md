@@ -137,3 +137,19 @@ tail -f /var/log/tts-ft-exp.log
 | `ALLOW_WITH_NODE` | `0` | script từ chối chạy khi speech node đang phục vụ trên máy (train làm chậm luồng thật) |
 
 Kết quả: `report.md` (in ra cuối log), `results.json`, `wavs/` (nghe so sánh), và `results.tar.gz` để tải về. Mất khoảng 20–40 phút với 3 cấu hình, cần ~12 GB đĩa trống. Bundle tạo bằng `scripts/build_finetune_bundle.sh` của `unispeech_tts`.
+
+## TTS: máy huấn luyện giọng LoRA (`tts/bench/run-trainer.sh`)
+
+Máy GPU tự nhận job huấn luyện tạo trên console (**Huấn luyện**): tải dataset từ kho R2 bằng link ký sẵn, huấn luyện, đánh giá, upload gói adapter, xoá dataset trên máy. Thiết kế: `unispeech_tts/docs/huanluyen/huanluyen-console.md`.
+
+1. Console → **Huấn luyện** → **Máy huấn luyện** → *Thêm máy* → copy key `ust_live_…` (hiện một lần).
+2. Trên máy GPU (template NVIDIA CUDA của vast.ai hoặc máy nội bộ, driver ≥ 570, bf16: Ampere trở lên):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ATHLSolutions/install-unispeech/main/tts/bench/run-trainer.sh -o /root/tts-trainer.sh
+UNISPEECH_GATEWAY_URL=https://speech.uniagent.vn UNISPEECH_TRAINER_KEY=ust_live_... \
+  nohup bash /root/tts-trainer.sh > /var/log/tts-trainer.log 2>&1 &
+tail -f /var/log/tts-trainer.log
+```
+
+Máy chỉ gọi ra ngoài (gateway + kho lưu trữ), không cần mở cổng. Key bị từ chối hoặc thiếu biến thì agent dừng hẳn (mã 2); lỗi khác thì tự khởi động lại. nginx của gateway phải mở `^/internal/v1/trainers/` (mẫu: `unispeech_tts/deploy/nginx/speech.uniagent.vn.conf`).
